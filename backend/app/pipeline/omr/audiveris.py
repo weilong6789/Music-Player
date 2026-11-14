@@ -3,6 +3,9 @@ import shutil
 from pathlib import Path
 
 from app import config
+from app.pipeline.merge import merge_musicxml
+from app.pipeline.omr.base import OMRError
+from app.pipeline.omr.util import natural_key, read_musicxml, run_command
 
 
 class AudiverisEngine:
@@ -37,7 +40,40 @@ class AudiverisEngine:
         )
 
     def run(self, image_paths: list[Path], out_dir: Path) -> Path:
-        raise NotImplementedError("Audiveris OMR arrives in milestone 2")
+        binary = self.binary()
+        if binary is None:
+            raise OMRError("Audiveris isn't installed")
+
+        work = out_dir / "audiveris-work"
+        shutil.rmtree(work, ignore_errors=True)
+        work.mkdir(parents=True)
+        try:
+            cmd = [str(binary), "-batch", "-export", "-output", str(work), "--"]
+            cmd += [str(path.resolve()) for path in image_paths]
+            run_command(cmd, cwd=work, label="Audiveris")
+
+            # One file per page, or per movement within a page, depending on the version.
+            exports = sorted(
+                (p for ext in ("*.mxl", "*.musicxml", "*.xml") for p in work.rglob(ext)),
+                key=lambda p: (natural_key(p.parent), natural_key(p)),
+            )
+            if not exports:
+                raise OMRError("Audiveris finished without exporting a score")
+
+            plain: list[Path] = []
+            for index, export in enumerate(exports, start=1):
+                target = work / f"export-{index}.musicxml"
+                target.write_bytes(read_musicxml(export))
+                plain.append(target)
+
+            dest = out_dir / f"{self.name}.musicxml"
+            if len(plain) == 1:
+                shutil.copyfile(plain[0], dest)
+            else:
+                merge_musicxml(plain, dest)
+            return dest
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
 
 
 def _is_executable(path: Path) -> bool:

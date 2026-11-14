@@ -5,6 +5,11 @@ description = "Local app that reads scanned violin excerpts and plays them back"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115",
+    "homr>=0.7.1",
+    "music21>=10.5.2",
+    "opencv-python-headless>=4.14.0.94",
+    "pymupdf>=2.1",
+    "python-multipart>=0.0.33",
     "uvicorn[standard]>=0.32",
 ]
 

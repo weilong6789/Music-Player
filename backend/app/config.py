@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
-DATA_DIR = Path(os.environ.get("EXCERPT_DATA_DIR", ROOT_DIR / "data"))
+DATA_DIR = Path(os.environ.get("EXCERPT_DATA_DIR", ROOT_DIR / "data")).expanduser()
 EXCERPTS_DIR = DATA_DIR / "excerpts"
 SAMPLES_DIR = DATA_DIR / "samples"
 

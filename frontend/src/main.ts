@@ -1,50 +1,87 @@
-import { getHealth, type EngineStatus } from "./api";
+import { deleteExcerpt, getHealth, listExcerpts, type Excerpt, type Health } from "./api";
+import { renderDetail } from "./ui/detail";
+import { el } from "./ui/dom";
+import { renderEngineStatus, renderLibrary } from "./ui/library";
+import { createUploadForm } from "./ui/upload";
 import "./style.css";
 
-const ENGINE_LABELS: Record<string, string> = {
-  audiveris: "Audiveris",
-  homr: "homr",
+const state = {
+  excerpts: [] as Excerpt[],
+  selectedId: null as string | null, // null shows the upload form
+  health: null as Health | null,
+  healthError: null as string | null,
+  loadError: null as string | null,
 };
 
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
+const libraryHost = el("div");
+const enginesHost = el("div");
+const main = el("main", { class: "main" });
+const newButton = el("button", { type: "button", class: "primary wide", textContent: "Upload excerpt" });
+newButton.addEventListener("click", () => select(null));
+
+document.querySelector<HTMLElement>("#app")!.append(
+  el(
+    "aside",
+    { class: "sidebar" },
+    el("div", { class: "brand", textContent: "Excerpt Player" }),
+    newButton,
+    el("h2", { textContent: "Library" }),
+    libraryHost,
+    enginesHost,
+  ),
+  main,
+);
+
+function select(id: string | null): void {
+  state.selectedId = id;
+  render();
 }
 
-function engineRow(name: string, status: EngineStatus): HTMLElement {
-  const row = el("li", `engine ${status.available ? "ok" : "missing"}`);
-  const head = el("div", "engine-head");
-  head.append(
-    el("span", "dot"),
-    el("span", "engine-name", ENGINE_LABELS[name] ?? name),
-    el("span", "engine-state", status.available ? "Installed" : "Not installed"),
+function render(): void {
+  libraryHost.replaceChildren(
+    state.loadError
+      ? el("p", { class: "status error", textContent: state.loadError })
+      : renderLibrary(state.excerpts, state.selectedId, select),
   );
-  row.append(head, el("p", "engine-detail", status.detail));
-  return row;
-}
+  enginesHost.replaceChildren(renderEngineStatus(state.health, state.healthError));
 
-async function render(): Promise<void> {
-  const app = document.querySelector<HTMLElement>("#app")!;
-  const status = el("section", "card");
-  status.append(el("h2", undefined, "OMR engines"));
-  app.replaceChildren(el("h1", undefined, "Excerpt Player"), status);
-
-  try {
-    const health = await getHealth();
-    const list = el("ul", "engines");
-    for (const [name, engine] of Object.entries(health.engines)) {
-      list.append(engineRow(name, engine));
-    }
-    status.append(list);
-  } catch (err) {
-    status.append(el("p", "error", `Can't reach the backend: ${(err as Error).message}`));
+  const selected = state.excerpts.find((e) => e.id === state.selectedId);
+  if (selected) {
+    main.replaceChildren(renderDetail(selected, remove));
+  } else {
+    main.replaceChildren(
+      el(
+        "section",
+        { class: "upload-pane" },
+        el("h1", { textContent: "Upload an excerpt" }),
+        createUploadForm(state.health, (excerpt) => {
+          state.excerpts = [excerpt, ...state.excerpts];
+          select(excerpt.id);
+        }),
+      ),
+    );
   }
 }
 
-void render();
+async function remove(excerpt: Excerpt): Promise<void> {
+  try {
+    await deleteExcerpt(excerpt.id);
+  } catch (err) {
+    alert(`Couldn't delete it: ${(err as Error).message}`);
+    return;
+  }
+  state.excerpts = state.excerpts.filter((e) => e.id !== excerpt.id);
+  select(null);
+}
+
+async function load(): Promise<void> {
+  const [health, excerpts] = await Promise.allSettled([getHealth(), listExcerpts()]);
+  if (health.status === "fulfilled") state.health = health.value;
+  else state.healthError = (health.reason as Error).message;
+  if (excerpts.status === "fulfilled") state.excerpts = excerpts.value;
+  else state.loadError = (excerpts.reason as Error).message;
+  render();
+}
+
+render();
+void load();

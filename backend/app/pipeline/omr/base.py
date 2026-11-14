@@ -2,6 +2,10 @@ from pathlib import Path
 from typing import Protocol
 
 
+class OMRError(RuntimeError):
+    """An engine failed or produced nothing usable."""
+
+
 class OMREngine(Protocol):
     name: str
 
@@ -12,5 +16,5 @@ class OMREngine(Protocol):
         ...
 
     def run(self, image_paths: list[Path], out_dir: Path) -> Path:
-        """Run OMR and return the path of the MusicXML output."""
+        """Run OMR on the page images and return the path of one MusicXML file."""
         ...
