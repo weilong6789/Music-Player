@@ -3,11 +3,13 @@ UVICORN := uv run uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port
 
 .PHONY: setup build start dev dev-backend dev-frontend test
 
-# homr --init downloads its recognition models (about 130 MB) so imports work offline later.
+# Downloads homr's recognition models (about 130 MB) and the violin samples (about 35 MB),
+# so everything works offline afterwards.
 setup:
 	uv sync
 	cd frontend && npm install
 	uv run homr --init
+	uv run python scripts/fetch_samples.py
 
 build:
 	cd frontend && npm run build
@@ -30,4 +32,4 @@ dev-frontend:
 
 test:
 	uv run pytest
-	cd frontend && npm run typecheck
+	cd frontend && npm run typecheck && npm test

@@ -254,3 +254,30 @@ def test_audiveris_wrapper_reports_missing_export(tmp_path, monkeypatch):
     page.write_bytes(png_bytes())
     with pytest.raises(OMRError, match="without exporting"):
         AudiverisEngine().run([page], tmp_path)
+
+
+# --- PATCH ------------------------------------------------------------------
+
+
+def test_patch_tempo_marks_it_as_entered_by_the_user(engines):
+    excerpt_id = upload("scan.png", png_bytes()).json()["id"]
+    meta = client.patch(f"/api/excerpts/{excerpt_id}", json={"tempo_bpm": 96}).json()
+    assert (meta["tempo_bpm"], meta["tempo_source"]) == (96, "user")
+    assert client.get(f"/api/excerpts/{excerpt_id}").json() == meta
+
+
+def test_patch_title_leaves_tempo_alone(engines):
+    excerpt_id = upload("scan.png", png_bytes()).json()["id"]
+    meta = client.patch(f"/api/excerpts/{excerpt_id}", json={"title": "  Don Juan, bars 1-12 "}).json()
+    assert meta["title"] == "Don Juan, bars 1-12"
+    assert (meta["tempo_bpm"], meta["tempo_source"]) == (72, "marking")
+
+
+@pytest.mark.parametrize("body", [{"tempo_bpm": 5}, {"tempo_bpm": 900}, {"title": ""}, {"title": "   "}])
+def test_patch_rejects_bad_values(engines, body):
+    excerpt_id = upload("scan.png", png_bytes()).json()["id"]
+    assert client.patch(f"/api/excerpts/{excerpt_id}", json=body).status_code == 422
+
+
+def test_patch_unknown_excerpt():
+    assert client.patch("/api/excerpts/0123456789ab", json={"tempo_bpm": 96}).status_code == 404

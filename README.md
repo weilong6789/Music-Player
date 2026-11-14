@@ -2,7 +2,7 @@
 
 Local Mac app that reads a scanned or photographed violin excerpt and plays it back. Spec is in `BUILD_PLAN.md`, background in `BRAINSTORM.md`.
 
-Status: milestones 1 and 2. You can upload a PDF, PNG or JPG, the app reads it into MusicXML and keeps it in a library. Rendering the score and playback come in milestone 3.
+Status: milestones 1 to 3. Upload a PDF, PNG or JPG, the app reads it into MusicXML, shows the result next to the original and plays it back with a violin sound at an adjustable tempo. Looping, step mode and note correction come in later milestones.
 
 ## Install
 
@@ -16,7 +16,7 @@ Install Audiveris from its GitHub releases page (the macOS `.dmg`). On first lau
 make setup
 ```
 
-`make setup` also downloads homr's recognition models (about 130 MB), the one step that needs a connection.
+`make setup` also downloads homr's recognition models (about 130 MB) and the violin samples (about 35 MB). After that the app works offline.
 
 ## Run
 
@@ -54,3 +54,13 @@ Each excerpt lives in `data/excerpts/<id>/` with the original file, the page ima
 ### Tempo
 
 If no metronome mark or "♩ = 72" style text is found, the excerpt gets 80 BPM as a placeholder and is flagged so the tempo can be entered by hand once the player exists. homr doesn't read tempo markings.
+
+## Playback
+
+The score is drawn with Verovio and played with Tone.js. The tempo field starts at the marking found in the score and can be overwritten; the change is saved with the excerpt. The speed slider goes from 25% to 150% of that tempo and can be moved while playing. Space toggles play and pause.
+
+For a score with several parts, only the violin part (or the first part) is played.
+
+### Violin sound
+
+The samples are the solo violin sustains from [VSCO 2 Community Edition](https://github.com/sgossner/VSCO-2-CE) by Versilian Studios (CC0). They're recordings of a real player with vibrato, so individual notes sit up to about 12 cents off equal temperament. If the samples are missing, playback uses a plain synthesized tone, which is exactly in tune; run `make setup` again to fetch them.

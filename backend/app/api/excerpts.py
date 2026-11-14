@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, Response
+from pydantic import BaseModel, Field
 
 from app import storage
 from app.pipeline import importer
@@ -91,6 +92,27 @@ def get_score(excerpt_id: str, format: str = Query("musicxml", pattern="^(musicx
         raise HTTPException(404, f"No {format} score saved for this excerpt")
     media_type = "application/mei+xml" if format == "mei" else "application/vnd.recordare.musicxml+xml"
     return Response(path.read_bytes(), media_type=media_type)
+
+
+class ExcerptPatch(BaseModel):
+    title: str | None = Field(None, min_length=1, max_length=200)
+    tempo_bpm: float | None = Field(None, ge=20, le=400)
+
+
+@router.patch("/{excerpt_id}")
+def update_excerpt(excerpt_id: str, patch: ExcerptPatch) -> dict:
+    _folder(excerpt_id)
+    meta = storage.read_meta(excerpt_id)
+    if patch.title is not None:
+        title = patch.title.strip()
+        if not title:
+            raise HTTPException(422, "The title can't be blank")
+        meta["title"] = title
+    if patch.tempo_bpm is not None:
+        meta["tempo_bpm"] = patch.tempo_bpm
+        meta["tempo_source"] = "user"
+    storage.write_meta(excerpt_id, meta)
+    return meta
 
 
 @router.delete("/{excerpt_id}", status_code=204)

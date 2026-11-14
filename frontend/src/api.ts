@@ -31,7 +31,7 @@ export interface Excerpt {
   cleanup_applied: string[];
   tempo_bpm: number;
   tempo_beat: number;
-  tempo_source: "marking" | "text" | "default";
+  tempo_source: "marking" | "text" | "default" | "user";
   parts: { index: number; name: string }[];
   playback_part: number;
   measure_count: number;
@@ -84,3 +84,24 @@ export function uploadExcerpt(options: UploadOptions): Promise<Excerpt> {
 
 export const pageUrl = (id: string, page: number) => `/api/excerpts/${id}/pages/${page}`;
 export const scoreUrl = (id: string) => `/api/excerpts/${id}/score?format=musicxml`;
+
+export interface SampleSet {
+  available: boolean;
+  base_url: string;
+  notes: Record<string, string>;
+}
+
+export const getSamples = () => request<{ violin: SampleSet }>("/api/samples");
+
+export async function getScore(id: string): Promise<string> {
+  const res = await fetch(scoreUrl(id));
+  if (!res.ok) throw new Error(`Couldn't load the score (${res.status})`);
+  return res.text();
+}
+
+export const updateExcerpt = (id: string, patch: { title?: string; tempo_bpm?: number }) =>
+  request<Excerpt>(`/api/excerpts/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });

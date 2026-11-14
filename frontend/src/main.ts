@@ -1,6 +1,6 @@
 import { deleteExcerpt, getHealth, listExcerpts, type Excerpt, type Health } from "./api";
-import { renderDetail } from "./ui/detail";
 import { el } from "./ui/dom";
+import { createExcerptView, type ExcerptView } from "./ui/excerpt";
 import { renderEngineStatus, renderLibrary } from "./ui/library";
 import { createUploadForm } from "./ui/upload";
 import "./style.css";
@@ -32,6 +32,9 @@ document.querySelector<HTMLElement>("#app")!.append(
   main,
 );
 
+let openView: ExcerptView | null = null;
+let openId: string | null = null;
+
 function select(id: string | null): void {
   state.selectedId = id;
   render();
@@ -46,8 +49,19 @@ function render(): void {
   enginesHost.replaceChildren(renderEngineStatus(state.health, state.healthError));
 
   const selected = state.excerpts.find((e) => e.id === state.selectedId);
+  if (selected && selected.id === openId) return; // keep the open score and its playback
+  openView?.dispose();
+  openView = null;
+  openId = selected?.id ?? null;
   if (selected) {
-    main.replaceChildren(renderDetail(selected, remove));
+    openView = createExcerptView(selected, {
+      onDelete: remove,
+      onChange: (updated) => {
+        state.excerpts = state.excerpts.map((e) => (e.id === updated.id ? updated : e));
+        render();
+      },
+    });
+    main.replaceChildren(openView.element);
   } else {
     main.replaceChildren(
       el(
