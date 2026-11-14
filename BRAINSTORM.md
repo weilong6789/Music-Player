@@ -50,19 +50,18 @@ One specific thing to handle: many contemporary scores use the convention that a
 | **Local Python tool (Gradio / Streamlit)** | Fastest to build. Good for proving the OMR + playback pipeline works. | Ugly, laptop-only unless hosted. |
 | **MuseScore + plugin / workflow** | MuseScore 4 already imports PDFs (via its online Audiveris-based importer), has a free realistic violin (Muse Sounds), tempo control, and loop playback. | Not a custom app, clunky for quick audition prep, import quality varies. Worth trying first as the baseline. |
 
-**Recommendation:** start with a Python prototype (Gradio) to test which OMR engine handles my actual excerpts, then build a PWA: Python backend for OMR, browser frontend for rendering, correction, and playback. Host the backend somewhere cheap (Hugging Face Spaces, Fly.io, Railway, or just my own machine).
+**Recommendation:** laptop-first and free. Run everything locally: a Python backend (OMR + music21) on the laptop, with the UI in the browser at `localhost`. No hosting, no subscriptions, works offline. Start as a Gradio prototype, then grow it into a proper local web app. If I ever want it on an iPad, the same web UI can be hosted later without rewriting it.
 
-## Existing tools to try before building anything
+## Free laptop tools to try before building anything
 
-These tell me how good the state of the art is on my own scans.
+Most of the polished scan-and-play products are either mobile-only (PlayScore 2, Newzik) or paid (Soundslice, ScanScore, SmartScore, PhotoScore), so those are out. What's free and runs on a laptop (Windows/Mac/Linux):
 
-- **PlayScore 2** (iOS/Android): photo → playback with tempo control. Probably the closest existing product to this idea. Good for benchmarking.
-- **Soundslice**: has a sheet music scanner (PDF/photo → editable notation) plus excellent practice playback (loop, slow down). Paid.
-- **MuseScore 4 + musescore.com PDF import**: free, Audiveris under the hood, Muse Sounds violin is genuinely good.
-- **Newzik**: score reader with "Maestria" OMR, aimed at orchestral musicians.
-- **ScanScore / SmartScore / PhotoScore**: desktop OMR, commercial.
+- **Audiveris** (desktop app) — free, open source, has a GUI. Open the PDF/image, it recognizes the music, and I can fix errors in its editor, then export MusicXML.
+- **MuseScore 4** (desktop app) — free. Open the MusicXML from Audiveris, fix notes, then play back with the Muse Sounds violin (free download via Muse Hub). Has a tempo control and lets me select measures and loop playback.
+- **musescore.com PDF import** — free with an account. Upload a PDF in the browser, get back a MuseScore file. Same Audiveris engine underneath, just without installing it.
+- **homr / oemer** (Python, command line) — free, better than Audiveris on phone photos. No GUI, so output MusicXML and open it in MuseScore.
 
-If one of these already handles contemporary excerpts well, the custom app can focus on the practice UX instead of OMR.
+**Audiveris → MuseScore 4** is a fully free laptop workflow available today. Testing it on a few real excerpts shows where it falls short (tedious corrections, clunky looping, bad recognition on contemporary notation). That tells me what the custom app actually needs to do better.
 
 ## OMR (image → notes)
 
@@ -140,14 +139,13 @@ Later:
 
 ## Rough build plan
 
-1. **Benchmark (no code):** run 5–10 real excerpts, including a couple of the nastiest contemporary ones, through PlayScore 2, MuseScore import, and Soundslice. Note what breaks.
+1. **Benchmark (no code):** run 5–10 real excerpts, including a couple of the nastiest contemporary ones, through Audiveris → MuseScore 4, and through homr. Note what breaks.
 2. **Prototype (Python + Gradio):** upload image → run Audiveris and homr → show MusicXML rendered → music21 to MIDI → play with a violin SoundFont. Tempo slider and measure range inputs. Goal: find out which OMR engine wins on my material.
-3. **Web app MVP:** FastAPI backend (OMR + music21), frontend with Verovio or alphaTab, SpessaSynth/Tone.js playback, measure selection, tempo, loop. PWA so it installs on the iPad.
+3. **Local web app MVP:** FastAPI backend running on the laptop (OMR + music21), browser frontend with Verovio or alphaTab, SpessaSynth/Tone.js playback, measure selection, tempo, loop. One command starts it, then open `localhost` in a browser.
 4. **Correction UI:** click a note to change pitch/accidental/duration, re-render instantly. This is the hard part of the frontend.
 5. **Extras:** pitch detection, excerpt library, better violin sound.
 
 ## Open questions
 
 - How often are my excerpts clean PDFs vs phone photos of printed pages? That decides how much effort goes into image cleanup and which OMR engine to favor.
-- Do I want offline use (practice rooms with bad wifi)? That pushes toward a desktop build or on-device OMR.
 - How much editing am I willing to do per excerpt? If a minute of fixing is fine, a mediocre OMR engine plus a good correction UI beats chasing perfect recognition.
