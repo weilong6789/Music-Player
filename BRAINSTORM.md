@@ -1,5 +1,7 @@
 # Sheet Music Player — Brainstorm
 
+> Decided: local Python backend app on Mac, no iOS. See `BUILD_PLAN.md` for the build spec.
+
 ## Goal
 
 Upload a scanned or photographed audition excerpt (usually a violin part, sometimes a solo), have it read into notes, then play it back so I can check what it's supposed to sound like.
@@ -45,7 +47,6 @@ One specific thing to handle: many contemporary scores use the convention that a
 | Option | Pros | Cons |
 |---|---|---|
 | **Web app / PWA** | Works on laptop, iPad on a music stand, and phone. Phone camera upload works in the browser. One codebase. Can be "installed" to home screen. | OMR has to run on a server (the good engines are Java/Python), so need hosting. |
-| **Native iOS/iPadOS app** | Apple's VisionKit document scanner gives great cropping/deskew for free. Best feel on iPad. | Swift only, App Store hassle, OMR still probably server-side or a slow on-device model. |
 | **Desktop app (Tauri or Electron)** | Can bundle Audiveris locally, no server, works offline. | Not on the iPad/phone where I'd actually practice. |
 | **Local Python tool (Gradio / Streamlit)** | Fastest to build. Good for proving the OMR + playback pipeline works. | Ugly, laptop-only unless hosted. |
 | **MuseScore + plugin / workflow** | MuseScore 4 already imports PDFs (via its online Audiveris-based importer), has a free realistic violin (Muse Sounds), tempo control, and loop playback. | Not a custom app, clunky for quick audition prep, import quality varies. Worth trying first as the baseline. |
@@ -71,7 +72,7 @@ Most of the polished scan-and-play products are either mobile-only (PlayScore 2,
 - **Sheet Music Transformer (SMT) and similar research models** — end-to-end image → notation models from the research community. Worth watching, not production-ready.
 - **Vision LLMs** (Claude, GPT, Gemini) — can read short excerpts and output MusicXML/ABC/LilyPond. Unreliable on dense passages but useful as a second opinion or for reading text like tempo markings, "sul pont.", etc. Could be a fallback or a cross-check: run two engines and flag measures where they disagree.
 
-Image cleanup before OMR: **OpenCV** (deskew, perspective correction, thresholding), or on iOS, **VisionKit**. Phone photos of audition PDFs printed out and marked up in pencil will need this.
+Image cleanup before OMR: **OpenCV** (deskew, perspective correction, thresholding). Phone photos of audition PDFs printed out and marked up in pencil will need this.
 
 ## Score parsing and manipulation
 
